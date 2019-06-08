@@ -1,0 +1,9 @@
+[package]
+name = "mateometer"
+version = "0.1.0"
+authors = ["Olgierd \"Allgreed\" Kasprowicz <olixem@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+canteen = "0.5"
+prometheus = "0.6"
