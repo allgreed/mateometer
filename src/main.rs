@@ -1,79 +1,63 @@
-use canteen::*;
-use canteen::utils;
+#![feature(proc_macro_hygiene, decl_macro)]
+#[macro_use] extern crate rocket;
 use prometheus::{Opts, Registry, Gauge, TextEncoder, Encoder};
 
 
+// TODO: Add set endpoint
 // TODO: Fix unsafe
+// TODO: Fix metrics - use global registry xd
 // TODO: Add persistance
-// TODO: https://docs.rs/prometheus/0.6.1/prometheus/#static-metrics
 // TODO: Add admin action authentication
 // TODO: JSON support
-// TODO: Fix metrics passing - instead of static use handler
 // TODO: start FROM scratch and copy the required linked binaries / link statically
 // TODO: Add swagger contract
 // TODO: Add DMZ support
+// TODO: Don't use GET (for adding and taking one) - GETs should be idempotent
+
 
 static mut ble: i32 = 0;
 
-fn main()
-{
-    let mut cnt = Canteen::new();
 
-    // TODO: Parametrize - PORT + DEV (127.0.0.1)
-    cnt.bind(("0.0.0.0", 8080));
-
-    cnt.add_route("/mate", &[Method::Get], get_mate);
-    cnt.add_route("/metrics", &[Method::Get], get_metrics);
-
-    // TODO: Don't use get here - GETs should be idempotent
-    cnt.add_route("/took_one", &[Method::Get], remove_single_mate);
-    cnt.add_route("/add/<int:amount>", &[Method::Get], add_mate);
-
-    // aliases:
-    cnt.add_route("/", &[Method::Get], get_mate); // alias for /mate
-    cnt.add_route("/one", &[Method::Get], remove_single_mate); // alias for took_one
-    
-    // default to 404 - without it this hangs :c
-    cnt.set_default(utils::err_404);
-
-    cnt.run();
-}
-
-fn get_mate(_req: &Request) -> Response
-{
+#[get("/count")]
+fn get_mate() -> String {
     unsafe {
-        utils::make_response(format!("{}", ble), "text/plain", 200)
+       format!("{}", ble)
     }
 }
 
-fn add_mate(req: &Request) -> Response
-{
-    let amount: i32 = req.get("amount");
+// TODO: Can I alias it somehow?
+#[get("/")]
+fn root() -> String {
+    unsafe {
+       format!("{}", ble)
+    }
+}
 
+#[get("/add/<amount>")]
+fn add_mate(amount: i32) -> String {
     let dddd = alter_mate_amount(amount);
 
-    utils::make_response(format!("{}", dddd), "text/plain", 200)
+    format!("{}", dddd)
 }
 
-fn remove_single_mate(req: &Request) -> Response
-{
-    let dddd = alter_mate_amount(-1);
+#[get("/one")]
+fn remove_single_mate() -> &'static str {
+    alter_mate_amount(-1);
 
-    utils::make_response(format!("{}", dddd), "text/plain", 200)
+    "Smacznego! Możesz zamknąć tę stronę :)"
 }
 
-fn alter_mate_amount(fuj: i32) -> i32
-{
+fn alter_mate_amount(fuj: i32) -> i32 {
     unsafe {
         ble += fuj;
         ble
     }
 }
 
-fn get_metrics(_req: &Request) -> Response
-{
+#[get("/metrics")]
+fn get_metrics() -> String {
     let r = Registry::new();
-    let counter_opts = Opts::new("mateometer_mate_count", "amout of mate in our Hackerspace");
+    let counter_opts = Opts::new("mateometer_mate_count", "amount of mate in our Hackerspace");
     let counter = Gauge::with_opts(counter_opts).unwrap();
 
     unsafe {
@@ -87,5 +71,15 @@ fn get_metrics(_req: &Request) -> Response
     let metric_families = r.gather();
     encoder.encode(&metric_families, &mut buffer).unwrap();
 
-    utils::make_response(format!("{}", String::from_utf8(buffer).unwrap()), "text/plain", 200)
+    String::from_utf8(buffer).unwrap()
+}
+
+fn main() {
+    rocket::ignite().mount("/", routes![
+       root,
+       get_mate,
+       get_metrics,
+       add_mate,
+       remove_single_mate,
+    ]).launch();
 }

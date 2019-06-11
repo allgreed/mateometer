@@ -5,5 +5,5 @@ authors = ["Olgierd \"Allgreed\" Kasprowicz <olixem@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-canteen = "0.5"
+rocket = "0.4.1"
 prometheus = "0.6"
