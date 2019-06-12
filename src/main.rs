@@ -3,7 +3,6 @@
 use prometheus::{Opts, Registry, Gauge, TextEncoder, Encoder};
 
 
-// TODO: Add set endpoint
 // TODO: Fix unsafe
 // TODO: Fix metrics - use global registry xd
 // TODO: Add persistance
@@ -12,7 +11,7 @@ use prometheus::{Opts, Registry, Gauge, TextEncoder, Encoder};
 // TODO: start FROM scratch and copy the required linked binaries / link statically
 // TODO: Add swagger contract
 // TODO: Add DMZ support
-// TODO: Don't use GET (for adding and taking one) - GETs should be idempotent
+// TODO: Don't use GET (for adding, setting and taking one) - GETs should be idempotent
 
 
 static mut ble: i32 = 0;
@@ -36,6 +35,13 @@ fn root() -> String {
 #[get("/add/<amount>")]
 fn add_mate(amount: i32) -> String {
     let dddd = alter_mate_amount(amount);
+
+    format!("{}", dddd)
+}
+
+#[get("/set/<amount>")]
+fn set_mate(amount: i32) -> String {
+    let dddd = alter_mate_amount(- alter_mate_amount(0) + amount);
 
     format!("{}", dddd)
 }
@@ -76,10 +82,11 @@ fn get_metrics() -> String {
 
 fn main() {
     rocket::ignite().mount("/", routes![
-       root,
-       get_mate,
-       get_metrics,
-       add_mate,
-       remove_single_mate,
+        root,
+        get_mate,
+        get_metrics,
+        add_mate,
+        set_mate,
+        remove_single_mate,
     ]).launch();
 }
