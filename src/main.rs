@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicU16, Ordering};
 
 use prometheus::{Opts, Registry, Gauge, Counter, TextEncoder, Encoder};
 use rocket::State;
+use rocket::response::status::NotFound;
 
 
 // TODO: Add persistance
@@ -47,17 +48,19 @@ fn set_mate(mate_count: State<AtomicU16>, amount: u16) -> String {
 }
 
 #[get("/one")]
-fn remove_single_mate(mate_count: State<AtomicU16>, one_counter: State<Counter>) -> &'static str {
+fn remove_single_mate(mate_count: State<AtomicU16>, one_counter: State<Counter>) -> Result<String, NotFound<String>> {
     let current_mate_count = mate_count.load(Ordering::Relaxed);
 
-    // TODO: Return 401 if there is no mate
+    if current_mate_count == 0 {
+        return Err(NotFound("Nie możesz wziąć mate, jak nie ma mate ;p".to_string()));
+    }
     
     let new_mate_count = current_mate_count - 1;
 
     mate_count.store(new_mate_count, Ordering::Relaxed);
     one_counter.inc();
 
-    "Smacznego! Możesz zamknąć tę stronę :)"
+    Ok("Smacznego! Możesz zamknąć tę stronę :)".to_string())
 }
 
 #[get("/metrics")]
