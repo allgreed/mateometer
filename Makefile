@@ -1,11 +1,14 @@
 .DEFAULT_GOAL := help
 
-.PHONY: docker docker-publish
+.PHONY: docker docker-publish all
 docker: ## build Docker image
-	docker build -t allgreed/mateometer:preview2 -f deploy/Dockerfile .
+	docker build -t allgreed/mateometer:preview3 -f deploy/Dockerfile .
 
-docker-publish: ## push Docker image
-	docker push allgreed/mateometer:preview2
+publish: ## push Docker image
+	docker push allgreed/mateometer:preview3
+
+all: docker publish
+	
 
 
 .PHONY: help

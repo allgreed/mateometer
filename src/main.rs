@@ -5,11 +5,14 @@ use std::sync::atomic::{AtomicU16, Ordering};
 
 use prometheus::{Opts, Registry, Gauge, Counter, TextEncoder, Encoder};
 use rocket::State;
-use rocket::response::status::NotFound;
+use rocket::response::Redirect;
 
+// Deploy!
 
 // TODO: Add persistance
 // Deploy!
+
+// TODO: Kindof respect Cargo version when building containers ;d
 
 // TODO: Add admin action authentication
 // TODO: JSON support
@@ -17,16 +20,28 @@ use rocket::response::status::NotFound;
 // TODO: start FROM scratch and copy the required linked binaries / link statically
 // TODO: Add swagger contract
 // TODO: Add DMZ support
-// TODO: Don't use GET (for adding, setting and taking one) - GETs should be idempotent
+// TODO: Don't use GET (for adding, setting and taking one) - GETs should be idempotent => figure
+// out posting problem
 #[get("/count")]
 fn get_mate(mate_count: State<AtomicU16>) -> String {
     mate_count.load(Ordering::Relaxed).to_string()
 }
 
-// TODO: Can I alias it somehow?
+// TODO: Drop it after doing a propper frontend
 #[get("/")]
 fn root(mate_count: State<AtomicU16>) -> String {
     mate_count.load(Ordering::Relaxed).to_string()
+}
+
+// TODO: Drop it after doing a propper frontend
+#[get("/smacznego")]
+fn enjoy_your_mate() -> &'static str {
+    "Smacznego :)"
+}
+
+#[get("/smuteczek")]
+fn no_mate() -> &'static str {
+    "Ni ma mate już :C"
 }
 
 #[get("/add/<amount>")]
@@ -48,11 +63,11 @@ fn set_mate(mate_count: State<AtomicU16>, amount: u16) -> String {
 }
 
 #[get("/one")]
-fn remove_single_mate(mate_count: State<AtomicU16>, one_counter: State<Counter>) -> Result<String, NotFound<String>> {
+fn remove_single_mate(mate_count: State<AtomicU16>, one_counter: State<Counter>) -> Redirect {
     let current_mate_count = mate_count.load(Ordering::Relaxed);
 
     if current_mate_count == 0 {
-        return Err(NotFound("Nie możesz wziąć mate, jak nie ma mate ;p".to_string()));
+        return Redirect::to("/smuteczek")
     }
     
     let new_mate_count = current_mate_count - 1;
@@ -60,7 +75,7 @@ fn remove_single_mate(mate_count: State<AtomicU16>, one_counter: State<Counter>)
     mate_count.store(new_mate_count, Ordering::Relaxed);
     one_counter.inc();
 
-    Ok("Smacznego! Możesz zamknąć tę stronę :)".to_string())
+    Redirect::to("/smacznego")
 }
 
 #[get("/metrics")]
@@ -101,11 +116,13 @@ fn main() {
         .manage(one_counter)
         .mount("/", routes![
             root,
+            enjoy_your_mate,
             get_mate,
             get_metrics,
             add_mate,
             set_mate,
             remove_single_mate,
+            no_mate,
         ]
     )
     .launch();
